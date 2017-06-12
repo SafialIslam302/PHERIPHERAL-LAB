@@ -1,0 +1,269 @@
+#include <Servo.h>
+#define echoPin 11  // echo pin in the sensor
+#define trigPin 12  // trigger pin in the sensor
+#define leftmotorForward 5    // motor driver Input 1
+#define leftmotorBackward 9   // motor driver Input 2
+#define rightmotorForward 6   // motor driver Input 3
+#define rightmotorBackward 10  // motor driver Input 4
+
+int servoPin = 3;   // servo motor pin
+Servo Servo1;   // servo name
+long duration, distance;
+
+#define Grove_Water_Sensor 8 // Attach Water sensor to Arduino Digital Pin 8
+#define motor 13 // Attach an motor to Digital Pin 9 (or use onboard LED)
+
+// Pins ldr
+int sensorPin = 0;
+int lightPin = 2;
+
+// Variables ldr
+int lightState = 0;
+int highTreshold = 400;
+int sensorValue;
+
+void setup() {
+
+   Serial.begin(9600);
+   pinMode(trigPin, OUTPUT);
+   pinMode(echoPin, INPUT);
+
+   // We need to attach the servo to the used pin number
+   Servo1.attach(servoPin);
+
+   pinMode(Grove_Water_Sensor, INPUT); // The Water Sensor is an Input
+   pinMode(motor, OUTPUT); // The LED is an Output
+
+   pinMode(lightPin,OUTPUT);
+
+   pinMode(7,OUTPUT);
+   pinMode(4,OUTPUT);
+}
+
+void loop() {
+    digitalWrite(7,HIGH);
+    digitalWrite(4,HIGH);
+    
+    Servo1.write(90);  // turn the servo into forward
+    delay(150);
+    long forward_distance = dist();   // measure the forward distance
+    /*Serial.print("Distance forward: ");
+    Serial.println(forward_distance);
+    delay(2000);*/
+  
+    waterCode();
+    delay(30);
+    ldrCode();
+    delay(30);
+  
+    if ( forward_distance <= 30 )
+    {
+      moveStop();     // if detect something turn off
+      delay(30);
+      turnLeft();     // if detect something turn left
+      delay(30);
+    }
+    else
+    {
+      moveForward();  // else go Forward
+    }
+}
+
+void turnLeft()
+{
+  Servo1.write(180);   // turn the servo in Left
+  delay(400);
+  long left_distance = dist();  // measure the left distance
+  /*Serial.print("Distance left: ");
+  Serial.println(left_distance);*/
+  digitalWrite(7,HIGH);
+  digitalWrite(4,HIGH);
+  
+  waterCode();
+  delay(30);
+  ldrCode();
+  delay(30);
+  
+  if (left_distance <= 30 )
+  {
+    turnRight();   // if detect something turn Right
+  }
+  else
+  {
+    Servo1.write(90);   // turn the servo into forward
+    delay(40);
+    /* turn the car into Left */
+    digitalWrite(7,HIGH);
+    digitalWrite(4,HIGH);
+    analogWrite(leftmotorForward,150);// right motor forward is high to turn the car in to Left side
+    digitalWrite(rightmotorBackward, HIGH);
+    delay(400);
+    analogWrite(leftmotorBackward, 0);
+    analogWrite(rightmotorForward, 0);
+  }
+}
+
+void turnRight()
+{
+  Servo1.write(0);      // turn the servo in Right
+  delay(400);
+  long right_distance = dist();  // measure the Right distance
+  /*Serial.print("Distance right : ");
+  Serial.println(right_distance);
+  delay(1000);*/
+  digitalWrite(7,HIGH);
+  digitalWrite(4,HIGH);
+  
+  waterCode();
+  delay(30);
+  ldrCode();
+  delay(30);
+  
+  if ( right_distance <= 30 ) {
+    Servo1.write(90);    // if detect something turn the servo in forward
+    moveBackward();      // turn back
+    delay(80);
+  }
+  else
+  {
+    Servo1.write(90);   // turn the servo into forward
+    delay(40);
+    /* turn the car into Right */
+    digitalWrite(7,HIGH);
+    digitalWrite(4,HIGH);
+    analogWrite(rightmotorForward,150);
+    digitalWrite(leftmotorBackward, HIGH);  // left motor forward is high to turn the car in to Right side
+    delay(400);
+    analogWrite(rightmotorBackward, 0);
+    analogWrite(leftmotorForward, 0);
+  }
+}
+
+void moveForward()
+{
+  waterCode();
+  delay(50);
+  ldrCode();
+  delay(50);
+  
+  /* only both the left and right motor Forward is HIGH */
+  digitalWrite(7,HIGH);
+  digitalWrite(4,HIGH);
+  analogWrite(leftmotorForward, 100);
+  analogWrite(rightmotorForward, 100);
+  analogWrite(leftmotorBackward, 0);
+  analogWrite(rightmotorBackward, 0);
+
+  /* extra code */
+
+    long forward_distance = dist();   // measure the forward distance
+  
+    if ( forward_distance <= 25 )
+    {
+      moveStop();     // if detect something turn off
+      delay(30);
+      turnLeft();     // if detect something turn left
+      delay(30);
+    }
+   
+  /* extra code */
+
+
+  
+  waterCode();
+  delay(30);
+  ldrCode();
+  delay(30);
+}
+
+void moveBackward()
+{
+  waterCode();
+  delay(20);
+  ldrCode();
+  delay(20);
+
+  /* only both the left and right motor backward is HIGH */
+  digitalWrite(7,HIGH);
+  digitalWrite(4,HIGH);
+  digitalWrite(rightmotorBackward, HIGH);
+  digitalWrite(leftmotorBackward, HIGH);
+  digitalWrite(rightmotorForward, LOW);
+  digitalWrite(leftmotorForward, LOW);
+  
+  delay(200);
+  
+  waterCode();
+  delay(20);
+  ldrCode();
+  delay(20);
+}
+
+void moveStop()
+{
+  waterCode();
+  delay(20);
+  ldrCode();
+  delay(20);
+  
+  /* both the left and right motor Forward and Backward is LOW */
+  digitalWrite(7,HIGH);
+  digitalWrite(4,HIGH);
+  analogWrite(leftmotorBackward, 0);
+  analogWrite(rightmotorForward, 0);
+  analogWrite(rightmotorBackward, 0);
+  analogWrite(leftmotorForward, 0);
+  delay(100);
+}
+
+void waterCode()
+{
+  /* water code */
+  if( digitalRead(Grove_Water_Sensor) == LOW) 
+  {
+      digitalWrite(motor,LOW);
+  }
+  else 
+  {
+      digitalWrite(motor,HIGH);
+      digitalWrite(rightmotorBackward,LOW );
+      digitalWrite(leftmotorBackward,LOW );
+      digitalWrite(rightmotorForward, HIGH);
+      digitalWrite(leftmotorForward, HIGH);
+  }
+  /* water code */
+}
+
+void ldrCode()
+{
+  /* ldr code */
+  sensorValue = analogRead(sensorPin);
+  /*delay(1000);
+  Serial.println(sensorValue);*/
+  if (sensorValue < highTreshold){
+    digitalWrite(lightPin, HIGH);
+  }
+  else 
+  {
+    digitalWrite(lightPin,LOW);
+  }
+  /* ldr Code*/
+}
+
+long dist()
+{
+  // Clears the trigPin
+  digitalWrite(trigPin, LOW);
+  delayMicroseconds(2);
+  // Sets the trigPin on HIGH state for 10 micro seconds
+  digitalWrite(trigPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  // Reads the echoPin, returns the sound wave travel time in microseconds
+  duration = pulseIn(echoPin, HIGH);
+
+  distance = duration/58.2;
+  return distance;
+}
+
+
